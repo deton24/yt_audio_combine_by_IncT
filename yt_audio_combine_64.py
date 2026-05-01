@@ -104,7 +104,7 @@ def design_brickwall_fir(pass_type: str, freq: float, fs: int,
         taps = firwin(numtaps, norm_cutoff, window="hamming", pass_zero=False)
     else:
         raise ValueError(f"Unknown pass_type: {pass_type}")
-    return taps.astype(numpy.float64)
+    return taps.astype(np.float64)
 
 
 def design_multiband_fir(cutoffs: list[float], fs: int, pass_zero: bool,
@@ -128,7 +128,7 @@ def design_multiband_fir(cutoffs: list[float], fs: int, pass_zero: bool,
         numtaps += 1
 
     taps = firwin(numtaps, norm_cutoffs, window="hamming", pass_zero=pass_zero)
-    return taps.astype(numpy.float64)
+    return taps.astype(np.float64)
 
 
 # ---------------------------------------------------------------------------
@@ -140,7 +140,7 @@ class StreamingFIR:
     StreamingDelay on unfiltered paths."""
 
     def __init__(self, taps: np.ndarray):
-        self.h = taps.astype(numpy.float64)
+        self.h = taps.astype(np.float64)
         self.L = len(taps)
         self._H: np.ndarray | None = None
         self._fft_n: int = 0
@@ -150,12 +150,12 @@ class StreamingFIR:
         """chunk: (M, C) float32 -> (M, C) float32."""
         M, C = chunk.shape
         if self._tail is None:
-            self._tail = np.zeros((self.L - 1, C), dtype=numpy.float64)
+            self._tail = np.zeros((self.L - 1, C), dtype=np.float64)
             N = M + self.L - 1
             self._fft_n = next_fast_len(N)
             self._H = np.fft.rfft(self.h, self._fft_n)
 
-        out = np.empty((M, C), dtype=numpy.float64)
+        out = np.empty((M, C), dtype=np.float64)
         for ch in range(C):
             block = np.concatenate([self._tail[:, ch], chunk[:, ch]])
             Y = np.fft.rfft(block, self._fft_n)
@@ -182,7 +182,7 @@ class StreamingDelay:
     def process(self, chunk: np.ndarray) -> np.ndarray:
         M, C = chunk.shape
         if self._buf is None:
-            self._buf = np.zeros((self.D, C), dtype=numpy.float64)
+            self._buf = np.zeros((self.D, C), dtype=np.float64)
         combined = np.concatenate([self._buf, chunk], axis=0)
         out = combined[:M].copy()
         self._buf = combined[M: M + self.D].copy()
@@ -217,18 +217,18 @@ class StreamingSTFTMasker:
         """src, msk: (M, C). Returns (M, C)."""
         M, C = src.shape
         if self._src_tail is None:
-            self._src_tail = np.zeros((self._tail_len, C), dtype=numpy.float64)
-            self._msk_tail = np.zeros((self._tail_len, C), dtype=numpy.float64)
+            self._src_tail = np.zeros((self._tail_len, C), dtype=np.float64)
+            self._msk_tail = np.zeros((self._tail_len, C), dtype=np.float64)
 
         # Prepend tail for boundary continuity, append nperseg zeros for
         # end-of-chunk protection
         pad_end = self.nperseg
         src_ext = np.concatenate([self._src_tail, src,
-                                  np.zeros((pad_end, C), dtype=numpy.float64)])
+                                  np.zeros((pad_end, C), dtype=np.float64)])
         msk_ext = np.concatenate([self._msk_tail, msk,
-                                  np.zeros((pad_end, C), dtype=numpy.float64)])
+                                  np.zeros((pad_end, C), dtype=np.float64)])
 
-        out = np.empty((M, C), dtype=numpy.float64)
+        out = np.empty((M, C), dtype=np.float64)
         for ch in range(C):
             _, _, Zs = scipy_stft(src_ext[:, ch], fs=SAMPLE_RATE,
                                   nperseg=self.nperseg, noverlap=self.noverlap,
@@ -270,16 +270,16 @@ class StreamingSTFTEnsemble:
         """sig_a, sig_b: (M, C). Returns (M, C)."""
         M, C = sig_a.shape
         if self._a_tail is None:
-            self._a_tail = np.zeros((self._tail_len, C), dtype=numpy.float64)
-            self._b_tail = np.zeros((self._tail_len, C), dtype=numpy.float64)
+            self._a_tail = np.zeros((self._tail_len, C), dtype=np.float64)
+            self._b_tail = np.zeros((self._tail_len, C), dtype=np.float64)
 
         pad_end = self.nfft
         a_ext = np.concatenate([self._a_tail, sig_a,
-                                np.zeros((pad_end, C), dtype=numpy.float64)])
+                                np.zeros((pad_end, C), dtype=np.float64)])
         b_ext = np.concatenate([self._b_tail, sig_b,
-                                np.zeros((pad_end, C), dtype=numpy.float64)])
+                                np.zeros((pad_end, C), dtype=np.float64)])
 
-        out = np.empty((M, C), dtype=numpy.float64)
+        out = np.empty((M, C), dtype=np.float64)
         for ch in range(C):
             _, _, Za = scipy_stft(a_ext[:, ch], fs=SAMPLE_RATE,
                                   nperseg=self.nfft, noverlap=self.noverlap,
@@ -323,7 +323,7 @@ class MultibandDecomposer:
 
         # Complement: filter_45 = identity_delay - filter_55 - filter_60
         numtaps = len(taps_55)
-        delay_kernel = np.zeros(numtaps, dtype=numpy.float64)
+        delay_kernel = np.zeros(numtaps, dtype=np.float64)
         delay_kernel[(numtaps - 1) // 2] = 1.0
         taps_45 = delay_kernel - taps_55 - taps_60
 
@@ -381,9 +381,9 @@ class PacketWeightProvider:
             sizes_opus.append(sz)
 
         self._m4a_starts = np.array(starts_m4a, dtype=np.int64)
-        self._m4a_sizes = np.array(sizes_m4a, dtype=numpy.float64)
+        self._m4a_sizes = np.array(sizes_m4a, dtype=np.float64)
         self._opus_starts = np.array(starts_opus, dtype=np.int64)
-        self._opus_sizes = np.array(sizes_opus, dtype=numpy.float64)
+        self._opus_sizes = np.array(sizes_opus, dtype=np.float64)
 
         # Bias mode
         if bias >= 100:
@@ -392,13 +392,13 @@ class PacketWeightProvider:
             self._mode = "all_m4a"
         else:
             self._mode = "dynamic"
-            self._bias_ratio = numpy.float64(bias / (100 - bias))
+            self._bias_ratio = np.float64(bias / (100 - bias))
 
     def get_weights(self, start_sample: int, num_samples: int,
                     ) -> tuple[np.ndarray, np.ndarray]:
         """Return (w_m4a, w_opus) as (num_samples, 1) float32 arrays."""
-        ones = np.ones((num_samples, 1), dtype=numpy.float64)
-        zeros = np.zeros((num_samples, 1), dtype=numpy.float64)
+        ones = np.ones((num_samples, 1), dtype=np.float64)
+        zeros = np.zeros((num_samples, 1), dtype=np.float64)
 
         if self._mode == "all_opus":
             return zeros, ones
@@ -418,10 +418,10 @@ class PacketWeightProvider:
 
         eff_opus = opus_sz * self._bias_ratio
         total = eff_opus + m4a_sz
-        np.maximum(total, numpy.float64(1e-10), out=total)
+        np.maximum(total, np.float64(1e-10), out=total)
 
-        w_opus = (eff_opus / total).astype(numpy.float64).reshape(-1, 1)
-        w_m4a = numpy.float64(1.0) - w_opus
+        w_opus = (eff_opus / total).astype(np.float64).reshape(-1, 1)
+        w_m4a = np.float64(1.0) - w_opus
         return w_m4a, w_opus
 
 
@@ -490,7 +490,7 @@ class PipelineState:
         self.fir_blp_opus = StreamingFIR(blp15750)
 
         # ---- gain ----
-        self.gain_neg1db = numpy.float64(10.0 ** (-1.0 / 20.0))
+        self.gain_neg1db = np.float64(10.0 ** (-1.0 / 20.0))
 
         # ---- pipeline latency in samples (for flush) ----
         self.total_delay = 3 * D1  # 3078
@@ -541,7 +541,7 @@ class _PerBiasTableState:
         self.delay_avg2p = StreamingDelay(D1)
         self.fir_blp_avg3 = StreamingFIR(blp15750)
 
-        self.gain_neg1db = numpy.float64(10.0 ** (-1.0 / 20.0))
+        self.gain_neg1db = np.float64(10.0 ** (-1.0 / 20.0))
 
 
 def process_chunk(m4a_raw: np.ndarray, opus_raw: np.ndarray,
@@ -571,7 +571,7 @@ def process_chunk(m4a_raw: np.ndarray, opus_raw: np.ndarray,
     if w_m4a is not None:
         averaged = m4a_ms * w_m4a + opus_ms * w_opus
     else:
-        averaged = (m4a_ms + opus_ms) * numpy.float64(0.5)
+        averaged = (m4a_ms + opus_ms) * np.float64(0.5)
 
     # Step 3 – bhp 850 Hz on averaged → Group B
     averaged_bhp = st.fir_bhp_avg.process(averaged)
@@ -593,7 +593,7 @@ def process_chunk(m4a_raw: np.ndarray, opus_raw: np.ndarray,
         w_m4a_B = st.delay_weights.process(w_m4a)
         averaged2_p = (opus_patch * w_m4a_B) + averaged2
     else:
-        averaged2_p = (opus_patch * numpy.float64(0.5)) + averaged2
+        averaged2_p = (opus_patch * np.float64(0.5)) + averaged2
 
     # Step 7 – ensemble max_fft (zero-delay STFT, stays in Group B)
     ens_result = st.stft_ensemble.process(averaged2_p, m4a_ms_d)
@@ -664,7 +664,7 @@ def _process_chunk_per_bias(
     if w_m4a is not None:
         averaged = m4a_ms * w_m4a + opus_ms * w_opus
     else:
-        averaged = (m4a_ms + opus_ms) * numpy.float64(0.5)
+        averaged = (m4a_ms + opus_ms) * np.float64(0.5)
 
     # Step 3 – bhp 850 Hz on averaged → Group B
     averaged_bhp = pst.fir_bhp_avg.process(averaged)
@@ -681,7 +681,7 @@ def _process_chunk_per_bias(
         w_m4a_B = pst.delay_weights.process(w_m4a)
         averaged2_p = (opus_patch * w_m4a_B) + averaged2
     else:
-        averaged2_p = (opus_patch * numpy.float64(0.5)) + averaged2
+        averaged2_p = (opus_patch * np.float64(0.5)) + averaged2
 
     # Step 7 – ensemble max_fft (Group B)
     ens_result = pst.stft_ensemble.process(averaged2_p, m4a_ms_d)
@@ -739,7 +739,7 @@ class WavWriter:
 
     def write(self, chunk: np.ndarray) -> None:
         """Write (M, 2) float32 chunk."""
-        raw = chunk.astype(numpy.float64).tobytes()
+        raw = chunk.astype(np.float64).tobytes()
         self._f.write(raw)
         self.data_bytes += len(raw)
 
@@ -779,7 +779,7 @@ class EncoderWriter:
 
     def write(self, chunk: np.ndarray) -> None:
         """Write (M, 2) float32 chunk to encoder stdin."""
-        raw = chunk.astype(numpy.float64).tobytes()
+        raw = chunk.astype(np.float64).tobytes()
         try:
             self._proc.stdin.write(raw)
         except BrokenPipeError:
@@ -1030,7 +1030,7 @@ def _read_chunk(pipe, chunk_size: int) -> np.ndarray | None:
     raw = pipe.stdout.read(nbytes)
     if not raw:
         return None
-    samples = np.frombuffer(raw, dtype=numpy.float64).copy()
+    samples = np.frombuffer(raw, dtype=np.float64).copy()
     n = len(samples) // CHANNELS
     if n == 0:
         return None
@@ -1443,7 +1443,7 @@ def process_pair(m4a_path: Path, webm_path: Path, output_path: Path | None,
                 shared = _precompute_table_shared(m4a_chunk, opus_chunk,
                                                   shared_st)
                 out = np.zeros((m4a_chunk.shape[0], CHANNELS),
-                               dtype=numpy.float64)
+                               dtype=np.float64)
                 for b in TABLE_BIASES:
                     wp = weight_providers[b]
                     if wp is not None:
@@ -1486,12 +1486,12 @@ def process_pair(m4a_path: Path, webm_path: Path, output_path: Path | None,
         if flush_keep > 0:
             flush_len = flush_keep + 1024  # extra for STFT OLA tails
             flush_len = ((flush_len + 1023) // 1024) * 1024
-            zeros = np.zeros((flush_len, CHANNELS), dtype=numpy.float64)
+            zeros = np.zeros((flush_len, CHANNELS), dtype=np.float64)
 
             if is_table:
                 shared = _precompute_table_shared(zeros, zeros, shared_st)
                 flush_out = np.zeros((flush_len, CHANNELS),
-                                     dtype=numpy.float64)
+                                     dtype=np.float64)
                 for b in TABLE_BIASES:
                     pipe_out = _process_chunk_per_bias(shared,
                                                       per_bias_states[b])
